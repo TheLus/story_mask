@@ -30,12 +30,9 @@ new MutationObserver(records => {
   attributes: true
 });
 
-const fetchMaskData = (sizeName) => {
-  document.querySelectorAll('.karaoke-background').forEach((i) => {
-    i.innerHTML = i.textContent.split(' ').map((word) => word && word.replace(/([“]?)(.*?)([”\,\.\?]?)$/, '<span class="word-for-mask">$1<span class="word-for-mask-inner">$2</span>$3</span>')).join(' ')
-  });
+const fetchRowMaskData = (parent, sizeName) => {
   const words = [];
-  document.querySelectorAll('.word-for-mask').forEach((word, i) => {
+  parent.querySelectorAll('.word-for-mask').forEach((word, i) => {
     const inner = word.querySelector('.word-for-mask-inner');
     const innerText = inner.innerText;
     const firstChar = innerText[0];
@@ -48,26 +45,98 @@ const fetchMaskData = (sizeName) => {
       width: inner.offsetWidth + RIGHT_MARGIN[sizeName] + charRightMargin - charLeftMargin // 左にずらした分幅が足りなくなるので - charLeftMargin して足してあげる
     };
   });
-  wordMask[sizeName] = words;
-  console.log(sizeName, words);
+
+  return words;
 }
 
-window.createMask = (arg) => {
+const fetchMaskData = (sizeName) => {
+  const rowList = [];
+  document.querySelectorAll('.karaoke-background').forEach((i) => {
+    i.innerHTML = i.textContent.split(' ').filter((word) => word !== '.').map((word) => word && word.replace(/([“]?)(.*?)([”\,\.\?]*?)$/, '<span class="word-for-mask">$1<span class="word-for-mask-inner">$2</span>$3</span>')).join(' ')
+    rowList.push(fetchRowMaskData(i, sizeName));
+  });
+  wordMask[sizeName] = rowList;
+}
+
+const initMaskData = async () => {
+  const urlPath = location.href.split('/');
+  if (urlPath[urlPath.length - 1] === '') {
+    urlPath.pop();
+  }
+  const targetName = urlPath.pop();
+  const targetGrade = urlPath.pop();
+  urlPath.pop();
+  urlPath.pop();
+  const json = await fetch(`${urlPath.join('/')}/__app/config/${targetGrade}/unit_config/${targetName}.json`).then((res) => res.json());
+  const baseMaskJson = Object.entries(json).reduce((baseMaskJson, [key, words]) => {
+    console.log(`---------- ${key} ---------`);
+    // TODO TA TF 系も考慮が必要？
+    if (!['words'].includes(key) && !key.match(/^wordsscript.*(?<!_all)$/)) {
+      console.log('スキップ');
+      return baseMaskJson;
+    }
+    return baseMaskJson.concat(words.karaoke.reduce((baseWordsMaskJson, page) => {
+      return baseWordsMaskJson.concat(Object.entries(page).reduce((pageBaseMaskJson, [key, group]) => {
+        return pageBaseMaskJson.concat(group.data.reduce((rowBaseMaskJson, row) => {
+          const rowtext = row.text_original ?? row.text;
+          return rowBaseMaskJson.concat(rowtext.replace(/\sclass=/g,'__').replace(/__\"/g,'__').replace(/\">/g,'>').replace(/<sl>/g, ' ').trim().split(' ').map((word) => {
+            return {
+              text: word.replace(/<[^>]*>/g, ''),
+              left: 0,
+              width: 0,
+              verb: /<vreb[>_ ]/.test(word),
+              noun: /<noun[>_ ]/.test(word),
+              newwords: /<newwords[>_ ]/.test(word),
+              elementary: /<elementary[>_ ]/.test(word),
+              keysentence: /<keysentence[>_ ]/.test(word),
+              class: []
+              .concat(word.match(/vreb__underline-[0-9]{2}/g))
+              .concat(word.match(/noun__underline-[0-9]{2}/g))
+              .concat(word.match(/newwords__underline-[0-9]{2}/g))
+              .concat(word.match(/elementary__underline-[0-9]{2}/g))
+              .concat(word.match(/keysentence__underline-[0-9]{2}/g))
+              .filter((item) => item)
+            };
+          }));
+        }, []));
+      }, []));
+    }, []));
+  }, []);
+  return baseMaskJson;
+}
+
+document.querySelector('.unit-btn-control-script')?.click();
+const baseMaskJsonData = await initMaskData();
+console.log(baseMaskJsonData);
+document.querySelectorAll('.unit-script-content').forEach((el) => {
+  el.style.display = 'block';
+  el.querySelectorAll('.unit-scroll-content').forEach((el) => {
+    el.style.visibility = 'visible';
+  });
+});
+// ページのレンダリングがおわるまですこし待つ
+await new Promise((resolve) => setTimeout(resolve, 400));
+window.createMask = () => {
   Object.entries(wordMask).forEach(([sizeName, words]) => {
     let count = 0;
-    arg.word[sizeName].forEach((sentence) => {
+    words.forEach((sentence) => {
       for (let i = 0; i < sentence.length; i++) {
         const word = sentence[i];
-        if (word.text != words[count].text) {
-            console.log(count, word, words[count]);
+        const baseData = baseMaskJsonData[count];
+        if (word.text != baseData.text) {
+            console.log(count, word, baseData);
         }
-        word.left = words[count].left;
-        word.width = words[count].width;
+        word.verb = baseData.verb;
+        word.noun = baseData.noun;
+        word.newwords = baseData.newwords;
+        word.elementary = baseData.elementary;
+        word.keysentence = baseData.keysentence;
+        word.class = baseData.class;
         count++;
       }
     });
   });
-  console.log(JSON.stringify(arg, null, '  '));
+  console.log(JSON.stringify({ word: wordMask }, null, '  '));
 }
 fetchMaskData('normal');
 console.log("createMask ready");
