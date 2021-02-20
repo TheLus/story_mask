@@ -71,6 +71,9 @@ const fetchMaskData = (sizeName) => {
   wordMask[sizeName] = rowList;
 }
 
+/**
+ * .json ファイルを取得して mask.json のベースを作る。この時点では left と width は入っていない。
+ */
 const initMaskData = () => {
   const urlPath = location.href.split('/');
   if (urlPath[urlPath.length - 1] === '') {
@@ -89,9 +92,15 @@ const initMaskData = () => {
         return baseMaskJson;
       }
       return baseMaskJson.concat(words.karaoke.reduce((baseWordsMaskJson, page) => {
+        let lastRowText = '';
         return baseWordsMaskJson.concat(Object.entries(page).reduce((pageBaseMaskJson, [key, group]) => {
           return pageBaseMaskJson.concat(group.data.reduce((rowBaseMaskJson, row) => {
             const rowtext = row.text_original || row.text;
+            // 同じ文章の場合はスキップ
+            if (lastRowText === rowtext) {
+              return rowBaseMaskJson;
+            }
+            lastRowText = rowtext;
             return rowBaseMaskJson.concat(rowtext.replace(/\sclass=/g,'__').replace(/__\"/g,'__').replace(/\">/g,'>').replace(/<sl>/g, ' ').trim().split(' ').map((word) => {
               if (!word) {
                 return null;
@@ -113,7 +122,12 @@ const initMaskData = () => {
                 .concat(word.match(/keysentence__underline-[0-9]{2}/g))
                 .filter((item) => item)
               };
-            })).filter((item => item));
+            })).filter((item => item)).reduce((rowItems, item) => {
+              // - や ' があれば分割する
+              return rowItems.concat(item.text.match(/[^-']*['-]?/g).filter((text) => text).map((text) => {
+                return Object.assign({}, item, { text });
+              }));
+            }, []);
           }, []));
         }, []));
       }, []));
