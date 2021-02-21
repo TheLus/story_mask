@@ -109,13 +109,13 @@ const initMaskData = () => {
                 text: word.replace(/<[^>]*>/g, ''),
                 left: 0,
                 width: 0,
-                verb: /<vreb[>_ ]/.test(word),
+                verb: /<verb[>_ ]/.test(word),
                 noun: /<noun[>_ ]/.test(word),
                 newwords: /<newwords[>_ ]/.test(word),
                 elementary: /<elementary[>_ ]/.test(word),
                 keysentence: /<keysentence[>_ ]/.test(word),
                 class: []
-                .concat(word.match(/vreb__underline-[0-9]{2}/g))
+                .concat(word.match(/verb__underline-[0-9]{2}/g))
                 .concat(word.match(/noun__underline-[0-9]{2}/g))
                 .concat(word.match(/newwords__underline-[0-9]{2}/g))
                 .concat(word.match(/elementary__underline-[0-9]{2}/g))
