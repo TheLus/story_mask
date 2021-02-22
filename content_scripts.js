@@ -39,10 +39,11 @@ const fetchRowMaskData = (parent, sizeName) => {
     const lastChar = innerText[innerText.length - 1];
     const charLeftMargin = CHAR_LEFT_MARGIN[firstChar] ? CHAR_LEFT_MARGIN[firstChar][sizeName] : 0;
     const charRightMargin = CHAR_RIGHT_MARGIN[lastChar] ? CHAR_RIGHT_MARGIN[lastChar][sizeName] : 0;
+    const isDot = word.innerText === '.';
     words[i] = {
       text: word.innerText,
       left: word.parentElement.offsetLeft + word.offsetLeft + inner.offsetLeft + LEFT_MARGIN[sizeName] + charLeftMargin,
-      width: inner.offsetWidth + RIGHT_MARGIN[sizeName] + charRightMargin - charLeftMargin // 左にずらした分幅が足りなくなるので - charLeftMargin して足してあげる
+      width: isDot ? 0 : inner.offsetWidth + RIGHT_MARGIN[sizeName] + charRightMargin - charLeftMargin // 左にずらした分幅が足りなくなるので - charLeftMargin して足してあげる
     };
   });
 
@@ -54,7 +55,6 @@ const fetchMaskData = (sizeName) => {
   document.querySelectorAll('.karaoke-background').forEach((i) => {
     i.innerHTML = i.textContent
       .split(' ')
-      .filter((word) => word !== '.')
       .map((word) => {
         if (!word) {
           return word;
@@ -95,7 +95,10 @@ const initMaskData = () => {
         let lastRowText = '';
         return baseWordsMaskJson.concat(Object.entries(page).reduce((pageBaseMaskJson, [key, group]) => {
           return pageBaseMaskJson.concat(group.data.reduce((rowBaseMaskJson, row) => {
-            const rowtext = row.text_original || row.text;
+            let rowtext = row.text_original || row.text;
+            if (Array.isArray(rowtext)) {
+              rowtext = rowtext.join(' ');
+            }
             // 同じ文章の場合はスキップ
             if (lastRowText === rowtext) {
               return rowBaseMaskJson;
