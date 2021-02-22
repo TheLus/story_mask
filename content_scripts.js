@@ -62,9 +62,6 @@ const fetchMaskData = (sizeName) => {
     if (document.querySelectorAll('.word-for-mask').length > 0) {
       return;
     };
-    // script 系で left: 200; になってしまう問題に対応。.karaoke-box 要素が基準となるように positio: relative; を付与してから計測する。
-    document.querySelectorAll('.karaoke-box').forEach((el) => el.style.position = 'relative');
-
     document.querySelectorAll('.karaoke-background').forEach((i) => {
       const replaceList = i.textContent
       .split(' ')
