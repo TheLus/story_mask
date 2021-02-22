@@ -62,19 +62,23 @@ const fetchMaskData = (sizeName) => {
     if (document.querySelectorAll('.word-for-mask').length > 0) {
       return;
     };
+    // script 系で left: 200; になってしまう問題に対応。.karaoke-box 要素が基準となるように positio: relative; を付与してから計測する。
+    document.querySelectorAll('.karaoke-box').forEach((el) => el.style.position = 'relative');
 
     document.querySelectorAll('.karaoke-background').forEach((i) => {
       const replaceList = i.textContent
       .split(' ')
       .map((word) => {
-        if (!word) {
+        let targetWord = word;
+        if (!targetWord) {
           return {key: '', value: ''};
         }
+        targetWord = word !== '.' ? word.match(/^(.*?)(\.$|$)/)[1] : word;
         // - や ' があれば分割する
         return {
-          key: word,
-          value: word.match(/[^-']*['-]?/g).filter((text) => text).reduce((ret, word) => {
-            return ret.concat(word.replace(/([“]?)(.*?)([”\,\.\?]*?)$/, '<span class="word-for-mask" style="font-family: inherit;">$1<span class="word-for-mask-inner" style="font-family: inherit; background-color: #00ffff;">$2</span>$3</span>'));
+          key: targetWord,
+          value: targetWord.match(/[^-']*['-]?/g).filter((text) => text).reduce((ret, word) => {
+            return ret.concat(word.replace(/([“]?)(.*?)([”\,\.\?\!]*?)$/, '<span class="word-for-mask" style="font-family: inherit;">$1<span class="word-for-mask-inner" style="font-family: inherit; background-color: #00ffff;">$2</span>$3</span>'));
           }, '')
         };
       });
@@ -86,7 +90,7 @@ const fetchMaskData = (sizeName) => {
         if (!lastReplacer) {
           return word;
         }
-        const replaceKey = new RegExp(`(^|(\\W))${lastReplacer.key.replace('?', '\\?')}((\\W)|$)`);
+        const replaceKey = new RegExp(`(^|(\\W))${lastReplacer.key.replace('?', '\\?').replace('.', '\\.')}((\\W)|$)`);
         if (!word.match(replaceKey)) {
           return word;
         }
