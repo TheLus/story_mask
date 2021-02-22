@@ -40,10 +40,16 @@ const fetchRowMaskData = (parent, sizeName) => {
     const charLeftMargin = CHAR_LEFT_MARGIN[firstChar] ? CHAR_LEFT_MARGIN[firstChar][sizeName] : 0;
     const charRightMargin = CHAR_RIGHT_MARGIN[lastChar] ? CHAR_RIGHT_MARGIN[lastChar][sizeName] : 0;
     const isDot = word.innerText === '.';
+    let targetElement = word;
+    let offsetLeft = 0;
+    while (!Object.values(targetElement.classList).includes('karaoke-box')) {
+      offsetLeft += targetElement.offsetLeft;
+      targetElement = targetElement.parentElement;
+    }
     words[i] = {
       text: word.innerText,
-      left: word.parentElement.offsetLeft + word.offsetLeft + inner.offsetLeft + LEFT_MARGIN[sizeName] + charLeftMargin,
-      width: isDot ? 0 : inner.offsetWidth + RIGHT_MARGIN[sizeName] + charRightMargin - charLeftMargin // 左にずらした分幅が足りなくなるので - charLeftMargin して足してあげる
+      left: offsetLeft + inner.offsetLeft + LEFT_MARGIN[sizeName] + charLeftMargin,
+      width: isDot ? 0 : (inner.offsetWidth + RIGHT_MARGIN[sizeName] + charRightMargin - charLeftMargin) // 左にずらした分幅が足りなくなるので - charLeftMargin して足してあげる
     };
   });
 
@@ -51,24 +57,49 @@ const fetchRowMaskData = (parent, sizeName) => {
 }
 
 const fetchMaskData = (sizeName) => {
-  const rowList = [];
-  document.querySelectorAll('.karaoke-background').forEach((i) => {
-    i.innerHTML = i.textContent
+  return new Promise((resolve) => setTimeout(resolve, 100)).then(() => {
+    const rowList = [];
+    if (document.querySelectorAll('.word-for-mask').length > 0) {
+      return;
+    };
+
+    document.querySelectorAll('.karaoke-background').forEach((i) => {
+      const replaceList = i.textContent
       .split(' ')
       .map((word) => {
         if (!word) {
-          return word;
+          return {key: '', value: ''};
         }
         // - や ' があれば分割する
-        return word.match(/[^-']*['-]?/g).filter((text) => text).reduce((ret, word) => {
-          return ret.concat(word.replace(/([“]?)(.*?)([”\,\.\?]*?)$/, '<span class="word-for-mask">$1<span class="word-for-mask-inner">$2</span>$3</span>'));
-        }, '');
+        return {
+          key: word,
+          value: word.match(/[^-']*['-]?/g).filter((text) => text).reduce((ret, word) => {
+            return ret.concat(word.replace(/([“]?)(.*?)([”\,\.\?]*?)$/, '<span class="word-for-mask" style="font-family: inherit;">$1<span class="word-for-mask-inner" style="font-family: inherit; background-color: #00ffff;">$2</span>$3</span>'));
+          }, '')
+        };
+      });
+
+      let lastReplacer = replaceList.shift();
+      i.innerHTML = i.innerHTML
+      .split(' ')
+      .map((word) => {
+        if (!lastReplacer) {
+          return word;
+        }
+        const replaceKey = new RegExp(`(^|(\\W))${lastReplacer.key.replace('?', '\\?')}((\\W)|$)`);
+        if (!word.match(replaceKey)) {
+          return word;
+        }
+        const ret = word.replace(replaceKey, `$2${lastReplacer.value}$4`);
+        lastReplacer = replaceList.shift();
+        return ret;
       })
       .join(' ');
-    rowList.push(fetchRowMaskData(i, sizeName));
+      rowList.push(fetchRowMaskData(i, sizeName));
+    });
+    console.log(sizeName, rowList);
+    wordMask[sizeName] = rowList;
   });
-  console.log(sizeName, rowList);
-  wordMask[sizeName] = rowList;
 }
 
 /**
@@ -154,14 +185,27 @@ initMaskData().then((baseMaskJsonData) => {
     window.createMask = () => {
       Object.entries(wordMask).forEach(([sizeName, words]) => {
         let count = 0;
+        let retryCount = 0;
         words.forEach((sentence) => {
           for (let i = 0; i < sentence.length; i++) {
             const word = sentence[i];
-            const baseData = baseMaskJsonData[count];
-            if (word.text != baseData.text) {
+            let baseData = baseMaskJsonData[count];
+            while (word.text.indexOf(baseData.text) !== 0 && baseData.text.indexOf(word.text) !== 0) {
+              if (retryCount++ > 2) {
                 console.error(sizeName, count, word, baseData);
                 throw new Error('main の json の text と、表示されているテキストが一致しない');
+              };
+              console.warn(sizeName, count, word, baseData, 'main の json の text と、表示されているテキストが一致しない');
+              if (word.text === '.') {
+                return;
+              }
+              if (baseData.text === '.') {
+                baseData = baseMaskJsonData[++count];
+                continue;
+              }
+              throw new Error('main の json の text と、表示されているテキストが一致しない');
             }
+            retryCount = 0;
             word.verb = baseData.verb;
             word.noun = baseData.noun;
             word.newwords = baseData.newwords;
