@@ -136,7 +136,7 @@ const initMaskData = () => {
               return rowBaseMaskJson;
             }
             lastRowText = rowtext;
-            return rowBaseMaskJson.concat(rowtext.replace(/<(?!\/?(verb|noun|newwords|elementary|keysentence))[^>]*>/g, '').replace(/\sclass=/g,'__').replace(/__\"/g,'__').replace(/\">/g,'>').replace(/<sl>/g, ' ').trim().split(' ').map((word) => {
+            return rowBaseMaskJson.concat(rowtext.replace(/<sl>/g, ' ').replace(/<(?!\/?(verb|noun|newwords|elementary|keysentence))[^>]*>/g, '').replace(/\sclass=/g,'__').replace(/__\"/g,'__').replace(/\">/g,'>').trim().split(' ').map((word) => {
               if (!word) {
                 return null;
               }
