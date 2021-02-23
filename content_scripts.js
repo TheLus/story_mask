@@ -70,7 +70,7 @@ const fetchMaskData = (sizeName) => {
         if (!targetWord) {
           return {key: '', value: ''};
         }
-        targetWord = word !== '.' ? word.match(/^(.*?)(\.$|$)/)[1] : word;
+        targetWord = word !== '.' ? word.match(/^(.*?)([\.\?]$|$)/)[1] : word;
         // - や ' があれば分割する
         return {
           key: targetWord,
