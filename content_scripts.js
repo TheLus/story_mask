@@ -39,7 +39,7 @@ const fetchRowMaskData = (parent, sizeName) => {
     const lastChar = innerText[innerText.length - 1];
     const charLeftMargin = CHAR_LEFT_MARGIN[firstChar] ? CHAR_LEFT_MARGIN[firstChar][sizeName] : 0;
     const charRightMargin = CHAR_RIGHT_MARGIN[lastChar] ? CHAR_RIGHT_MARGIN[lastChar][sizeName] : 0;
-    const isDot = word.innerText === '.';
+    const isDot = word.innerText.replace(/\./g, '').length === 0;
     let targetElement = word;
     let offsetLeft = 0;
     while (!Object.values(targetElement.classList).includes('karaoke-block')) {
@@ -70,7 +70,7 @@ const fetchMaskData = (sizeName) => {
         if (!targetWord) {
           return {key: '', value: ''};
         }
-        targetWord = word !== '.' ? word.match(/^(.*?)([\.\?]$|$)/)[1] : word;
+        targetWord = word !== '.' ? word.match(/^(.*?)([\.\?\,]$|$)/)[1] : word;
         // - や ' があれば分割する
         return {
           key: targetWord,
@@ -136,6 +136,7 @@ const initMaskData = () => {
               return rowBaseMaskJson;
             }
             lastRowText = rowtext;
+            rowtext = rowtext !== '.' ? rowtext.match(/^(.*?)([\.\?\,]$|$)/)[1] : rowtext;
             return rowBaseMaskJson.concat(rowtext.replace(/<sl>/g, ' ').replace(/<(?!\/?(verb|noun|newwords|elementary|keysentence))[^>]*>/g, '').replace(/\sclass=/g,'__').replace(/__\"/g,'__').replace(/\">/g,'>').trim().split(' ').map((word) => {
               if (!word) {
                 return null;
