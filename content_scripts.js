@@ -42,9 +42,9 @@ const fetchRowMaskData = (parent, sizeName) => {
     const isDot = word.innerText === '.';
     let targetElement = word;
     let offsetLeft = 0;
-    while (!Object.values(targetElement.classList).includes('karaoke-box')) {
+    while (!Object.values(targetElement.classList).includes('karaoke-block')) {
       offsetLeft += targetElement.offsetLeft;
-      targetElement = targetElement.parentElement;
+      targetElement = targetElement.offsetParent;
     }
     words[i] = {
       text: word.innerText,
