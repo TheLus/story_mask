@@ -75,7 +75,7 @@ const fetchMaskData = (sizeName) => {
         return {
           key: targetWord,
           value: targetWord.match(/[^-']*['-]?/g).filter((text) => text).reduce((ret, word) => {
-            return ret.concat(word.replace(/([“]?)(.*?)([”\,\.\?\!]*?)$/, '<span class="word-for-mask" style="font-family: inherit;">$1<span class="word-for-mask-inner" style="font-family: inherit; background-color: #00ffff;">$2</span>$3</span>'));
+            return ret.concat(word.replace(/([“]?)(.*?)([”\,\.\?\!]*?)$/, '<span class="word-for-mask" style="font: inherit;">$1<span class="word-for-mask-inner" style="font: inherit; background-color: #00ffff;">$2</span>$3</span>'));
           }, '')
         };
       });
@@ -136,7 +136,7 @@ const initMaskData = () => {
               return rowBaseMaskJson;
             }
             lastRowText = rowtext;
-            return rowBaseMaskJson.concat(rowtext.replace(/\sclass=/g,'__').replace(/__\"/g,'__').replace(/\">/g,'>').replace(/<sl>/g, ' ').trim().split(' ').map((word) => {
+            return rowBaseMaskJson.concat(rowtext.replace(/<(?!\/?(verb|noun|newwords|elementary|keysentence))[^>]*>/g, '').replace(/\sclass=/g,'__').replace(/__\"/g,'__').replace(/\">/g,'>').replace(/<sl>/g, ' ').trim().split(' ').map((word) => {
               if (!word) {
                 return null;
               }
